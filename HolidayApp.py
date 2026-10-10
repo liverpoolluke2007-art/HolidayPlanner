@@ -18,10 +18,7 @@ DATA_FILE = "trips.json"
 
 
 def load_trips():
-    """Reads existing trip data from the local JSON file.
-    
-    Returns an empty list if the file has not been created yet.
-    """
+    """Reads existing trip data from the local JSON file."""
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             return json.load(f)
@@ -38,7 +35,7 @@ def save_trips(trips):
 trips = load_trips()
 
 # Use an expandable accordion to keep the interface neat
-with st.expander("➕ Add New Trip", expanded=True):
+with st.expander("➕ Add New Trip", expanded=False):
     # Form batches input updates so the page only reruns when submitted
     with st.form("new_trip"):
         destination = st.text_input("Destination")
@@ -61,7 +58,7 @@ with st.expander("➕ Add New Trip", expanded=True):
             elif not destination.strip():
                 st.error("Destination cannot be empty.")
             else:
-                # Append new record (convert date objects to strings for JSON compatibility)
+                # Append new record
                 trips.append({
                     "destination": destination.strip(),
                     "start": str(start_date),
@@ -71,18 +68,31 @@ with st.expander("➕ Add New Trip", expanded=True):
                 # Persist changes to disk
                 save_trips(trips)
                 st.success(f"Trip to {destination} added!")
-                # Rerun the app to immediately refresh the displayed trips list
                 st.rerun()
 
 st.subheader("Your Upcoming Trips")
 
-# Display a notice if no records exist yet, otherwise iterate and print details
+# Display a notice if no records exist yet, otherwise iterate with delete buttons
 if not trips:
     st.info("No trips planned yet.")
 else:
-    for t in trips:
-        st.write(
-            f"**{t['destination']}** | "
-            f"{t['start']} to {t['end']} | "
-            f"Budget: £{t['budget']}"
-        )
+    for index, t in enumerate(trips):
+        # Create a wide column for details and a narrow column for the delete button
+        col_info, col_del = st.columns([4, 1])
+
+        with col_info:
+            st.write(
+                f"**{t['destination']}** | "
+                f"{t['start']} to {t['end']} | "
+                f"Budget: £{t['budget']}"
+            )
+
+        with col_del:
+            # Each Streamlit button requires a unique key; we use the trip index
+            if st.button("🗑️ Delete", key=f"delete_{index}"):
+                # Remove the trip from the list
+                trips.pop(index)
+                # Save the updated list to trips.json
+                save_trips(trips)
+                # Refresh UI immediately
+                st.rerun()
